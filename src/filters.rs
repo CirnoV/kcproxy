@@ -13,7 +13,6 @@ pub fn entry() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejectio
     warp::path("entry")
         .and(warp::get())
         .and(warp::cookie("token"))
-        .and(warp::header::<String>("host"))
         .and_then(super::handlers::entry)
 }
 

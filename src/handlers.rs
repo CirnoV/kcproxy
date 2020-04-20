@@ -52,7 +52,7 @@ pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, I
     )))
 }
 
-pub async fn entry(token: String, host: String) -> Result<impl warp::Reply, Infallible> {
+pub async fn entry(token: String) -> Result<impl warp::Reply, Infallible> {
     let token = jsonwebtoken::decode::<Claims>(
         &token,
         &jsonwebtoken::DecodingKey::from_secret(get_secret_key().as_ref()),
@@ -61,8 +61,7 @@ pub async fn entry(token: String, host: String) -> Result<impl warp::Reply, Infa
     .unwrap()
     .claims;
     let reply = format!(
-        "http://{host}/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
-        host = host,
+        "http://kc.icicle.moe/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
         api_token = token.api_token,
         api_starttime = token.api_starttime,
     );
