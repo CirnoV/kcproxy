@@ -61,7 +61,7 @@ pub async fn entry(token: String) -> Result<impl warp::Reply, Infallible> {
     .unwrap()
     .claims;
     let reply = format!(
-        "http://kc.icicle.moe/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
+        "https://kc.icicle.moe/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
         api_token = token.api_token,
         api_starttime = token.api_starttime,
     );
