@@ -10,7 +10,6 @@ pub fn kcproxy() -> impl Filter<Extract = impl warp::Reply, Error = warp::Reject
         .or(cache_or_proxy("kcs2"))
         .or(cache_or_proxy("kcs"))
         .or(spa())
-        .with(warp::compression::gzip())
 }
 
 pub fn entry() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
