@@ -1,3 +1,4 @@
+#![type_length_limit = "1670908"]
 #[macro_use]
 extern crate lazy_static;
 
