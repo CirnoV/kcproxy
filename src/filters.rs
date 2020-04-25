@@ -12,17 +12,23 @@ pub fn kcproxy() -> impl Filter<Extract = impl warp::Reply, Error = warp::Reject
         .or(spa())
 }
 
+pub fn with_token() -> warp::filters::BoxedFilter<(super::handlers::UserToken,)> {
+    warp::cookie("token")
+        .map(super::handlers::decode_token)
+        .boxed()
+}
+
 pub fn entry() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path("entry")
         .and(warp::get())
-        .and(warp::cookie("token"))
+        .and(with_token())
         .and_then(super::handlers::entry)
 }
 
 pub fn kcsapi() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path("kcsapi")
         .and(warp::post())
-        .and(warp::cookie("token"))
+        .and(with_token())
         .and(warp::header("referer"))
         .and(warp::path::full())
         .and(warp::body::form())
@@ -34,7 +40,7 @@ pub fn cache_or_proxy(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let path = format!("./cache/{}", dir);
     let cache = warp::fs::dir(path);
-    let proxy = warp::cookie("token")
+    let proxy = with_token()
         .and(warp::header::optional("referer"))
         .and(warp::path::full())
         .and(warp::query::raw())

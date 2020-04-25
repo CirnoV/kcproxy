@@ -6,11 +6,11 @@ use std::{collections::HashMap, convert::Infallible};
 use warp::path::FullPath;
 
 #[derive(Deserialize, Serialize)]
-pub struct Claims {
-    world_id: usize,
-    api_token: String,
-    api_starttime: i64,
-    exp: i64,
+pub struct UserToken {
+    pub world_id: usize,
+    pub api_token: String,
+    pub api_starttime: i64,
+    pub exp: i64,
 }
 
 pub fn get_secret_key() -> &'static str {
@@ -32,7 +32,7 @@ pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, I
     let world_id = kancolle_token.world_id;
     let api_token = kancolle_token.api_token;
     let api_starttime = kancolle_token.api_starttime;
-    let claims = Claims {
+    let claims = UserToken {
         world_id,
         api_token,
         api_starttime,
@@ -52,14 +52,19 @@ pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, I
     )))
 }
 
-pub async fn entry(token: String) -> Result<impl warp::Reply, Infallible> {
-    let token = jsonwebtoken::decode::<Claims>(
+pub fn decode_token(token: String) -> UserToken {
+    let claims = jsonwebtoken::decode::<UserToken>(
         &token,
         &jsonwebtoken::DecodingKey::from_secret(get_secret_key().as_ref()),
         &jsonwebtoken::Validation::default(),
     )
     .unwrap()
     .claims;
+
+    claims
+}
+
+pub async fn entry(token: UserToken) -> Result<impl warp::Reply, Infallible> {
     let reply = format!(
         "https://kc.icicle.moe/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
         api_token = token.api_token,
@@ -70,19 +75,11 @@ pub async fn entry(token: String) -> Result<impl warp::Reply, Infallible> {
 }
 
 pub async fn kcsapi(
-    token: String,
+    token: UserToken,
     referer: String,
     path: FullPath,
     body: HashMap<String, String>,
 ) -> Result<impl warp::Reply, Infallible> {
-    let token = jsonwebtoken::decode::<Claims>(
-        &token,
-        &jsonwebtoken::DecodingKey::from_secret(get_secret_key().as_ref()),
-        &jsonwebtoken::Validation::default(),
-    )
-    .unwrap()
-    .claims;
-
     let world_id = token.world_id;
     let world_ip = super::auth::get_world_ip(world_id);
     let url = format!("http://{}", &world_ip);
@@ -109,18 +106,11 @@ pub async fn kcsapi(
 }
 
 pub async fn kcs_static(
-    token: String,
+    token: UserToken,
     referer: Option<String>,
     path: FullPath,
     query: String,
 ) -> Result<impl warp::Reply, Infallible> {
-    let token = jsonwebtoken::decode::<Claims>(
-        &token,
-        &jsonwebtoken::DecodingKey::from_secret(get_secret_key().as_ref()),
-        &jsonwebtoken::Validation::default(),
-    )
-    .unwrap()
-    .claims;
     let world_id = token.world_id;
     let world_ip = super::auth::get_world_ip(world_id);
     let url = format!("http://{}", &world_ip);
