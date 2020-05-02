@@ -24,7 +24,56 @@ pub fn get_secret_key() -> &'static str {
     &SECRET_KEY
 }
 
+pub fn get_host() -> &'static str {
+    lazy_static! {
+        static ref HOST: String = std::env::var_os("HOST").unwrap().into_string().unwrap();
+    }
+
+    &HOST
+}
+
+pub fn is_debug_mode() -> bool {
+    lazy_static! {
+        static ref DEBUG: bool = std::env::var_os("DEBUG")
+            .unwrap()
+            .into_string()
+            .unwrap()
+            .parse()
+            .unwrap();
+    }
+
+    *DEBUG
+}
+
+pub fn make_cookie(claims: &UserToken) -> String {
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(get_secret_key().as_ref()),
+    )
+    .unwrap();
+    format!("token={}; Secure; httpOnly", token)
+}
+
 pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, Infallible> {
+    if is_debug_mode() == true {
+        let url = format!("https://{host}/get_token", host = get_host());
+        let claims: UserToken = reqwest::Client::new()
+            .post(&url)
+            .json(&user)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        let cookie = make_cookie(&claims);
+        return Ok(Box::new(warp::reply::with_header(
+            warp::reply(),
+            "Set-Cookie",
+            cookie,
+        )));
+    }
     let kancolle_token: super::auth::KancolleToken = match super::auth::get_token(&user).await {
         Ok(token) => token,
         Err(_err) => return Ok(Box::new("Try again")),
@@ -38,18 +87,31 @@ pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, I
         api_starttime,
         exp: (Local::now() + Duration::days(1)).timestamp(),
     };
-    let token = jsonwebtoken::encode(
-        &jsonwebtoken::Header::default(),
-        &claims,
-        &jsonwebtoken::EncodingKey::from_secret(get_secret_key().as_ref()),
-    )
-    .unwrap();
-    let cookie = format!("token={}; Secure; httpOnly", token);
+    let cookie = make_cookie(&claims);
     Ok(Box::new(warp::reply::with_header(
         warp::reply(),
         "Set-Cookie",
         cookie,
     )))
+}
+
+pub async fn login_get_token(
+    user: super::auth::DmmUser,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let kancolle_token: super::auth::KancolleToken = match super::auth::get_token(&user).await {
+        Ok(token) => token,
+        Err(_err) => return Ok(Box::new("Try again")),
+    };
+    let world_id = kancolle_token.world_id;
+    let api_token = kancolle_token.api_token;
+    let api_starttime = kancolle_token.api_starttime;
+    let claims = UserToken {
+        world_id,
+        api_token,
+        api_starttime,
+        exp: (Local::now() + Duration::days(1)).timestamp(),
+    };
+    Ok(Box::new(warp::reply::json(&claims)))
 }
 
 pub fn decode_token(token: String) -> UserToken {
@@ -65,8 +127,13 @@ pub fn decode_token(token: String) -> UserToken {
 }
 
 pub async fn entry(token: UserToken) -> Result<impl warp::Reply, Infallible> {
+    let entry_host = match is_debug_mode() {
+        true => "localhost",
+        false => get_host(),
+    };
     let reply = format!(
-        "https://kc.icicle.moe/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
+        "https://{host}/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
+        host = entry_host,
         api_token = token.api_token,
         api_starttime = token.api_starttime,
     );

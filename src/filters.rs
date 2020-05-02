@@ -2,6 +2,7 @@ use warp::Filter;
 
 pub fn kcproxy() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     kcproxy_login()
+        .or(get_token())
         .or(entry())
         .or(kcsapi())
         .or(cache_or_proxy("gadget_html5"))
@@ -58,6 +59,14 @@ pub fn kcproxy_login() -> impl Filter<Extract = impl warp::Reply, Error = warp::
         .and(warp::body::content_length_limit(1024 * 16))
         .and(warp::body::json())
         .and_then(super::handlers::login)
+}
+
+pub fn get_token() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("get_token")
+        .and(warp::post())
+        .and(warp::body::content_length_limit(1024 * 16))
+        .and(warp::body::json())
+        .and_then(super::handlers::login_get_token)
 }
 
 pub fn spa() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
