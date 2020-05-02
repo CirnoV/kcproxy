@@ -44,7 +44,7 @@ pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, I
         &jsonwebtoken::EncodingKey::from_secret(get_secret_key().as_ref()),
     )
     .unwrap();
-    let cookie = format!("token={}; httpOnly", token);
+    let cookie = format!("token={}; Secure; httpOnly", token);
     Ok(Box::new(warp::reply::with_header(
         warp::reply(),
         "Set-Cookie",
