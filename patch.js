@@ -75,4 +75,11 @@ main += "function patchInteractionManager () {\n" +
 main = main.replace(/'over':\w+\[\w+\('\w+'\)\]\?\w+\('\w+'\):\w+\('\w+'\)/g, "'over':'touchover'");
 main = main.replace(/'out':\w+\[\w+\('\w+'\)\]\?\w+\('\w+'\):\w+\('\w+'\)/g, "'out':'touchout'");
 
+main = main + `(function(){
+    window.addEventListener('DOMContentLoaded', (event) => {
+        document.getElementsByTagName('canvas')[0].style.width = "100%";
+        document.getElementsByTagName('body')[0].style.overflow = "hidden";
+    });
+})();`;
+
 fs.writeFileSync('./cache/kcs2/js/main.js', main);

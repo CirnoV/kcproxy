@@ -7,6 +7,7 @@ mod filters;
 mod handlers;
 
 use std::env;
+use warp::Filter;
 
 #[tokio::main]
 async fn main() {
@@ -25,5 +26,7 @@ async fn main() {
     pretty_env_logger::init();
 
     let routes = filters::kcproxy();
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes.with(warp::log("kcproxy")))
+        .run(([127, 0, 0, 1], 3030))
+        .await;
 }
