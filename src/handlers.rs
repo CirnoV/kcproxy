@@ -57,7 +57,7 @@ pub fn make_cookie(claims: &UserToken) -> String {
 
 pub async fn login(user: super::auth::DmmUser) -> Result<Box<dyn warp::Reply>, Infallible> {
     if is_debug_mode() == true {
-        let url = format!("https://{host}/get_token", host = get_host());
+        let url = format!("https://kc.icicle.moe/get_token");
         let claims: UserToken = reqwest::Client::new()
             .post(&url)
             .json(&user)
@@ -127,13 +127,9 @@ pub fn decode_token(token: String) -> UserToken {
 }
 
 pub async fn entry(token: UserToken) -> Result<impl warp::Reply, Infallible> {
-    let entry_host = match is_debug_mode() {
-        true => "localhost",
-        false => get_host(),
-    };
     let reply = format!(
         "https://{host}/kcs2/index.php?api_root=/kcsapi&voice_root=/kcs/sound&osapi_root=osapi.dmm.com&version=4.5.6.2&api_token={api_token}&api_starttime={api_starttime}",
-        host = entry_host,
+        host = get_host(),
         api_token = token.api_token,
         api_starttime = token.api_starttime,
     );
